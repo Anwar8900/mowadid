@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { isValidEmail, isValidPassword } from '../lib/validation';
 import { SetupNotice } from '../components/SetupNotice';
+import { PasswordInput } from '../components/PasswordInput';
 
 export function RegisterPage() {
   const { signUp } = useAuth();
@@ -85,20 +86,19 @@ export function RegisterPage() {
           </div>
           <div className="field">
             <label htmlFor="password">كلمة المرور</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <span className="hint">6 أحرف على الأقل. اضغط رمز العين للتأكد مما كتبته.</span>
           </div>
           <div className="field">
             <label htmlFor="confirmPassword">تأكيد كلمة المرور</label>
-            <input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

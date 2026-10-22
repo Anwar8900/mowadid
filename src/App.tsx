@@ -5,6 +5,7 @@ import { LoadingState } from './components/States';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { HomePage } from './pages/HomePage';
 import { AppointmentFormPage } from './pages/AppointmentFormPage';
 import { AppointmentDetailsPage } from './pages/AppointmentDetailsPage';
@@ -61,6 +62,14 @@ export default function App() {
         element={
           <PublicOnlyRoute>
             <ForgotPasswordPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <PublicOnlyRoute>
+            <ResetPasswordPage />
           </PublicOnlyRoute>
         }
       />

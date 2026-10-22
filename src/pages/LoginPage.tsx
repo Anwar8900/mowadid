@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { SetupNotice } from '../components/SetupNotice';
+import { PasswordInput } from '../components/PasswordInput';
 
 export function LoginPage() {
   const { signIn } = useAuth();
@@ -46,9 +47,8 @@ export function LoginPage() {
           </div>
           <div className="field">
             <label htmlFor="password">كلمة المرور</label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

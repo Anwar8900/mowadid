@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { AuthError, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { fetchProfile } from '../lib/api';
@@ -70,26 +71,47 @@ function toArabicAuthError(error: AuthError): string {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // ضمانة: تنتهي حالة التحميل دائمًا (بحد أقصى 5 ثوانٍ) حتى لو تعذّر قراءة الجلسة،
+    // وإلا بقيت الشاشة فارغة عند المستخدم.
+    const guard = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 5000);
+
+    const finish = () => {
+      if (!cancelled) {
+        setLoading(false);
+        clearTimeout(guard);
+      }
+    };
+
     supabase.auth
       .getSession()
       .then(async ({ data }) => {
+        if (cancelled) return;
         setUser(data.session?.user ?? null);
         if (data.session?.user) {
           const p = await fetchProfile(data.session.user.id);
-          setProfile(p);
+          if (!cancelled) setProfile(p);
         }
-        setLoading(false);
+        finish();
       })
-      .catch(() => setLoading(false));
+      .catch(() => finish());
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // عند فتح رابط استعادة كلمة المرور من البريد ينقل التطبيق مباشرة لصفحة التغيير
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate('/reset-password', { replace: true });
+      }
       setUser(session?.user ?? null);
       if (session?.user) {
         const p = await fetchProfile(session.user.id);
@@ -97,9 +119,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(null);
       }
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        finish();
+      }
     });
 
     return () => {
+      cancelled = true;
+      clearTimeout(guard);
       subscription.unsubscribe();
     };
   }, []);

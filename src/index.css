@@ -397,6 +397,35 @@ textarea {
   resize: vertical;
 }
 
+.password-input {
+  position: relative;
+}
+
+.password-input input {
+  padding-inline-end: 44px;
+}
+
+.password-toggle {
+  position: absolute;
+  inset-inline-end: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  color: var(--primary-dark);
+  background: var(--surface-alt);
+}
+
 .form-actions {
   display: flex;
   gap: 10px;

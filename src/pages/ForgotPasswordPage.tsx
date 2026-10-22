@@ -16,14 +16,20 @@ export function ForgotPasswordPage() {
     setMessage(null);
     setLoading(true);
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: window.location.origin,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
     if (resetError) {
-      setError('تعذر إرسال رابط استعادة كلمة المرور. يرجى المحاولة لاحقًا.');
+      setError(
+        resetError.status === 429
+          ? 'تم تجاوز حد إرسال الرسائل. انتظر قليلًا ثم أعد المحاولة.'
+          : 'تعذر إرسال رابط استعادة كلمة المرور. تأكد من صحة البريد، ومن أن مزود البريد يسمح بالإرسال إلى هذا العنوان.',
+      );
       return;
     }
-    setMessage('تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني.');
+    setMessage(
+      'تم إرسال رابط استعادة كلمة المرور إلى بريدك الإلكتروني. (تأكد من مجلد الرسائل غير المرغوبة، وتأكد أن مزود البريد يسمح بالإرسال إلى هذا العنوان.)',
+    );
   };
 
   return (
