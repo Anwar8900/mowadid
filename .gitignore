@@ -1,0 +1,17 @@
+node_modules
+dist
+dist-ssr
+dev-dist
+*.local
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+
+supabase/.temp
+supabase/.functions
+functions/node_modules
+
+.DS_Store
+*.log
