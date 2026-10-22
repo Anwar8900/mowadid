@@ -8,6 +8,9 @@ dev-dist
 .env
 .env.local
 .env.*.local
+appot.env.txt
+appot.env
+*.env.txt
 
 supabase/.temp
 supabase/.functions

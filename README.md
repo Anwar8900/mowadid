@@ -82,6 +82,18 @@ npm run preview  # معاينة نسخة الإنتاج
    - للتجربة السريعة: عطّل «Confirm email» حتى لا تحتاج بريدًا حقيقيًا.
    - للإنتاج: فعّل «Confirm email»، واضبط **SMTP** في Authentication (SMTP Settings) لضمان وصول رسائل التأكيد والاستعادة.
 4. من **Project Settings → API** انسخ `Project URL` و`anon public key` إلى ملف `.env`.
+
+> **أنواع المفاتيح في Supabase الجديد:**
+> - `sb_publishable_...` = المفتاح العام (بديل `anon`) → يوضع في `VITE_SUPABASE_ANON_KEY` في ملف `.env` للواجهة.
+> - `sb_secret_...` = المفتاح السري (بديل `service_role`) → **لا يُوضع في الواجهة ولا في `.env`**.
+>   يُستخدم فقط في الخادم: `supabase secrets set` لدالة التذكيرات، أو عند الاتصال المباشر بقاعدة البيانات.
+>
+> **مهم حول البريد:** إعدادات المشروع الحالية تُرسل رسالة تأكيد لكل تسجيل جديد، والخدمة الافتراضية
+> (SMTP الخاص بـ Supabase) لها حد إرسال منخفض فتظهر رسالة
+> `over_email_send_rate_limit`. الحل:
+> - للتجربة المحلية: من **Authentication → Email → Confirm email** عطّل «تأكيد البريد» ← يسجّل المستخدم ويدخل مباشرة.
+> - للإنتاج: اضبط **SMTP** (مثل Brevo أو Resend) من **Authentication → SMTP Settings**، ثم فعّل «تأكيد البريد».
+> - يجب أن يكون نطاق البريد المستخدم حقيقيًا ويدعم استقبال الرسائل (نطاقات مثل `example.com` أو النطاقات غير الموجودة تُرفض).
 5. تأكد من وجود حاوية `appointment-attachments` (تنشئها migration) وأنها **خاصة** (Private).
 
 **ب) محليًا (يتطلب Docker):**
@@ -93,6 +105,33 @@ supabase status         # يعرض المنفذ والمفاتيح
 ```
 
 ثم ضع في `.env` القيم التي يطبعها `supabase status` (URL و anon key الخاصين بالمشروع المحلي).
+
+### ج) تطبيق الترحيلات على مشروع سحابي قائم
+
+للتطبيق على مشروع قائم اختر إحدى الطرق:
+
+```bash
+# الطريقة 1: عبر رمز وصول شخصي (Personal access token) - الأنسب
+supabase login --token <sbp_xxxxxxxx>
+supabase link --project-ref <project-ref>
+supabase db push
+
+# الطريقة 2: عبر كلمة مرور قاعدة البيانات مباشرة
+supabase db push --db-url "postgresql://postgres:<db-password>@db.<project-ref>.supabase.co:5432/postgres"
+```
+
+> **ملاحظة مهمة:** المفتاح السري `sb_secret_...` وحده **لا يكفي** لتطبيق الترحيلات، لأنه لا يملك صلاحية
+> تنفيذ SQL. يلزم أحد الأمرين: **رمز وصول شخصي** (`sbp_...` من Account Settings → Access Tokens)
+> أو **كلمة مرور قاعدة البيانات** (من Project Settings → Database).
+> الرمز الشخصي هو الخيار الأفضل لأنه يتيح أيضًا نشر دالة التذكيرات وضبط أسرارها والجدولة.
+
+> إن كان مشروعك في منطقة محدّدة، فعّل الـ Pooler عند الاتصال المباشر:
+> `postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres`
+> (منطقة هذا المشروع: `ap-northeast-1`).
+>
+> **الطريقة الأسرع بلا أي أدوات:** افتح **SQL Editor** في لوحة Supabase، الصق محتوى
+> `supabase/migrations/20260101000000_initial_schema.sql` وشغّله. الملف آمن للتشغيل مرتين
+> (يستخدم `if not exists` و`drop policy if exists`).
 
 ---
 

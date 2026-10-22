@@ -12,12 +12,14 @@ export function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
     setError(null);
+    setSuccess(null);
     if (fullName.trim().length < 2) {
       setError('يرجى إدخال الاسم الكامل.');
       return;
@@ -35,10 +37,16 @@ export function RegisterPage() {
       return;
     }
     setLoading(true);
-    const err = await signUp(fullName.trim(), email.trim(), password);
+    const result = await signUp(fullName.trim(), email.trim(), password);
     setLoading(false);
-    if (err) {
-      setError(err);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    if (result.needsConfirmation) {
+      setSuccess(
+        'تم إنشاء الحساب بنجاح. افتح بريدك الإلكتروني لتأكيد الحساب ثم سجّل الدخول. (إذا لم تصلك الرسالة، فعّل «تأكيد البريد» من إعدادات Supabase أو عطّله للتجربة المحلية)',
+      );
       return;
     }
     navigate('/', { replace: true });
@@ -98,6 +106,7 @@ export function RegisterPage() {
             />
           </div>
           {error ? <p className="form-error">{error}</p> : null}
+          {success ? <p className="form-success">{success}</p> : null}
           <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
             {loading ? 'جارٍ إنشاء الحساب...' : 'إنشاء الحساب'}
           </button>
