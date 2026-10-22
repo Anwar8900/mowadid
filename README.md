@@ -205,8 +205,9 @@ create policy "appointments_select_own" on public.appointments
 
 الملف: `supabase/functions/send-reminders/index.ts`.
 
-المزود المستخدم في هذه النسخة هو **Resend** (بريد فقط). يمكن استبداله بمزود آخر بتعديل دالة
-`sendEmail` في الملف.
+**مزوّد البريد** في هذه النسخة: **Resend** أو **Brevo** (يُختار تلقائيًا حسب المفتاح المتاح).
+لا يوجد أي مزود مفعّل افتراضيًا — بدون مفتاح تُرجع الدالة رسالة صريحة
+«مزود البريد غير مُعد… لم يتم إرسال أي تذكير» ولا تدّعي أن البريد يعمل.
 
 **خطوات الإعداد:**
 
@@ -215,17 +216,62 @@ create policy "appointments_select_own" on public.appointments
 supabase functions deploy send-reminders --no-verify-jwt
 
 # 2) ضبط المتغيرات السرّية (لا تُكتب في ملفات الواجهة)
-supabase secrets set RESEND_API_KEY=re_xxxxxxxxx
-supabase secrets set RESEND_FROM_EMAIL=reminders@yourdomain.com
+supabase secrets set MAIL_PROVIDER=auto            # auto | resend | brevo
+supabase secrets set RESEND_API_KEY=re_xxxxxxxxx    # عند اختيار Resend
+supabase secrets set MAIL_FROM_EMAIL=onboarding@resend.dev
+# أو مع Brevo:
+supabase secrets set BREVO_API_KEY=xkeys-xxxxxxxxx
+supabase secrets set MAIL_FROM_EMAIL=you@yourdomain.com
 supabase secrets set APP_URL=https://your-app-url.com
-supabase secrets set CRON_SECRET=ضع_سرًا_عشوائيًا_طويلًا
-
-# 3) جدولة التنفيذ كل ساعة
-supabase functions schedule send-reminders --cron "0 * * * *"
+supabase secrets set CRON_SECRET=<سر عشوائي طويل>
 ```
 
-> بديل بدون CLI: من لوحة Supabase → **Edge Functions → send-reminders → Cron** أضف الجدولة،
-> ثم **Integrations → Cron** أو الاستدعاء من Job خارجي.
+> **Resend للاختبار السريع:** استخدم `onboarding@resend.dev` كمرسل — يعمل بدون تحقّق نطاق
+> لكن يُرسَل **إلى بريد صاحب الحساب فقط**. لتفعيل الإرسال لأي عميل: تحقّق من نطاقك في Resend
+> واستخدم مرسلًا من نطاقك (مثل `reminders@yourdomain.com`).
+> **Brevo:** يجب أن يكون عنوان المرسل مُفعّلًا/متحقّقًا في حساب Brevo.
+
+**الجدولة (Supabase Cron):**
+
+```bash
+# إن كان إصدار CLI لديك يدعم:
+supabase functions schedule send-reminders --cron "0 * * * *"
+
+# أو مباشرة على قاعدة البيانات (يعمل مع كل الإصدارات):
+```
+
+```sql
+create extension if not exists pg_net with schema extensions;
+create extension if not exists pg_cron with schema pg_catalog;
+
+select cron.schedule(
+  'send-reminders-hourly',
+  '0 * * * *',
+  $cronjob$
+  select net.http_post(
+    url := 'https://<project-ref>.supabase.co/functions/v1/send-reminders',
+    headers := jsonb_build_object('Content-Type', 'application/json',
+                                   'Authorization', 'Bearer <CRON_SECRET>'),
+    body := '{}'::jsonb
+  );
+  $cronjob$
+);
+```
+
+**تشغيل يدوي للاختبار:**
+
+```bash
+curl -X POST "https://<project-ref>.supabase.co/functions/v1/send-reminders" \
+  -H "Authorization: Bearer <CRON_SECRET>" \
+  -H "Content-Type: application/json" -d "{}"
+```
+
+أو راقب نتيجة الاستدعاء من داخل القاعدة:
+
+```sql
+select id, status_code, left(content, 300) as response, created
+from net._http_response order by created desc limit 5;
+```
 
 **كيف يمنع الإرسال المكرر؟**
 
@@ -243,7 +289,7 @@ supabase functions invoke send-reminders --no-verify-jwt \
   --header "Authorization: Bearer <CRON_SECRET>"
 ```
 
-بدون ضبط `RESEND_API_KEY` ستعيد الدالة رسالة واضحة
+بدون ضبط مفتاح المزود ستعيد الدالة رسالة واضحة
 `مزود البريد غير مُعد ... لم يتم إرسال أي تذكير` بدل الادعاء بأن البريد يعمل.
 
 ---

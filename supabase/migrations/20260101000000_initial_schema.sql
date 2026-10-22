@@ -50,6 +50,9 @@ comment on table public.appointments is 'مواعيد المستخدم الوا�
 
 -- منع تداخل المواعيد لنفس المستخدم على مستوى قاعدة البيانات
 -- (خطأ التكرار عند المخالفة: 23P01 exclusion_violation)
+-- ملاحظة: قيد EXCLUDE يتطلب فهرس GiST، لذلك نستخدم btree_gist لمقارنة user_id
+create extension if not exists btree_gist with schema extensions;
+
 do $$
 begin
   if not exists (
@@ -57,7 +60,7 @@ begin
   ) then
     alter table public.appointments
       add constraint appointments_no_overlap
-      exclude (user_id with =, tstzrange(start_time, end_time) with &&);
+      exclude using gist (user_id with =, tstzrange(start_time, end_time) with &&);
   end if;
 end $$;
 

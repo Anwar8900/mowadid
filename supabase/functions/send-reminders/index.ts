@@ -59,25 +59,37 @@ async function sendEmail(params: {
   html: string;
   from: string;
   apiKey: string;
+  provider: 'resend' | 'brevo';
 }): Promise<{ ok: boolean; error: string | null }> {
-  const response = await fetch('https://api.resend.com/emails', {
+  const isBrevo = params.provider === 'brevo';
+  const endpoint = isBrevo ? 'https://api.brevo.com/v3/smtp/email' : 'https://api.resend.com/emails';
+  const body = isBrevo
+    ? {
+      sender: { email: params.from, name: 'مواعيدي' },
+      to: [{ email: params.to }],
+      subject: params.subject,
+      htmlContent: params.html,
+    }
+    : {
+      from: params.from,
+      to: [params.to],
+      subject: params.subject,
+      html: params.html,
+    };
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${params.apiKey}`,
     },
-    body: JSON.stringify({
-      from: params.from,
-      to: [params.to],
-      subject: params.subject,
-      html: params.html,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (response.ok) return { ok: true, error: null };
 
-  const body = await response.text();
-  return { ok: false, error: `Resend ${response.status}: ${body.slice(0, 300)}` };
+  const body2 = await response.text();
+  return { ok: false, error: `${isBrevo ? 'Brevo' : 'Resend'} ${response.status}: ${body2.slice(0, 300)}` };
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -91,18 +103,33 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  const resendKey = Deno.env.get('RESEND_API_KEY');
-  const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') ?? '';
+
+  // مزود البريد: resend أو brevo (يُختار تلقائيًا حسب المفتاح المتاح)
+  const explicitProvider = (Deno.env.get('MAIL_PROVIDER') ?? '').toLowerCase();
+  const provider: 'resend' | 'brevo' = explicitProvider === 'brevo'
+    ? 'brevo'
+    : explicitProvider === 'resend'
+    ? 'resend'
+    : Deno.env.get('BREVO_API_KEY')
+    ? 'brevo'
+    : 'resend';
+
+  const apiKey = provider === 'brevo'
+    ? Deno.env.get('BREVO_API_KEY')
+    : Deno.env.get('RESEND_API_KEY');
+  const fromEmail = Deno.env.get('MAIL_FROM_EMAIL')
+    ?? Deno.env.get(provider === 'brevo' ? 'BREVO_FROM_EMAIL' : 'RESEND_FROM_EMAIL')
+    ?? '';
   const appUrl = Deno.env.get('APP_URL') ?? '';
 
   if (!supabaseUrl || !serviceKey) {
     return json({ ok: false, error: 'SUPABASE_URL أو SUPABASE_SERVICE_ROLE_KEY غير مضبوطة' }, 500);
   }
-  if (!resendKey || !fromEmail) {
+  if (!apiKey || !fromEmail) {
     return json(
       {
         ok: false,
-        error: 'مزود البريد غير مُعد (RESEND_API_KEY / RESEND_FROM_EMAIL). لم يتم إرسال أي تذكير.',
+        error: `مزود البريد غير مُعد (${provider === 'brevo' ? 'BREVO_API_KEY' : 'RESEND_API_KEY'} / ..._FROM_EMAIL). لم يتم إرسال أي تذكير.`,
         configured: false,
       },
       500,
@@ -188,7 +215,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         subject,
         html,
         from: fromEmail,
-        apiKey: resendKey,
+        apiKey,
+        provider,
       });
 
       const nowIso = new Date().toISOString();
