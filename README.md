@@ -252,7 +252,7 @@ supabase secrets set MAIL_FROM_EMAIL=onboarding@resend.dev
 # أو مع Brevo:
 supabase secrets set BREVO_API_KEY=xkeys-xxxxxxxxx
 supabase secrets set MAIL_FROM_EMAIL=you@yourdomain.com
-supabase secrets set APP_URL=https://your-app-url.com
+supabase secrets set APP_URL=https://anwar8900.github.io/mowadid/   # رابط التطبيق المنشور (يظهر داخل رسالة التذكير)
 supabase secrets set CRON_SECRET=<سر عشوائي طويل>
 ```
 
@@ -381,6 +381,27 @@ supabase functions invoke send-reminders --no-verify-jwt \
 
 - لتغيير اسم المستودع: `PAGES_BASE=/my-repo/ npm run deploy` (على PowerShell:
   `$env:PAGES_BASE="/my-repo/"; npm run deploy`).
+
+> ### ⚠️ إن ظهر في رسالة الاستعادة `redirect_to=http://localhost:5173`
+>
+> هذا الرابط يولّده **Supabase Auth** وليس كود التطبيق: عندما لا يكون رابط التطبيق ضمن
+> **Redirect URLs** المسموحة، يستبدله Supabase بـ **Site URL** (وهو حاليًا `localhost:5173`).
+> الحل من لوحة Supabase (مرة واحدة):
+>
+> 1. **Authentication → URL Configuration**.
+> 2. **Site URL** = `https://anwar8900.github.io/mowadid/`.
+> 3. **Redirect URLs** → أضف:
+>    - `https://anwar8900.github.io/mowadid/**`
+>    - `http://localhost:5173/**` (للتطوير المحلي)
+> 4. احفظ، ثم اطلب رابط استعادة جديدًا (الروابط القديمة تحتفظ بقيمتها القديمة).
+>
+> كود التطبيق يبني الرابط الصحيح تلقائيًا:
+> `${window.location.origin}${import.meta.env.BASE_URL}reset-password`، لذلك لا يحتاج أي تعديل
+> عند النشر على نطاق آخر.
+>
+> **كذلك** حدّث سرّ الدالة `APP_URL` ليشير للرابط المنشور:
+> `supabase secrets set APP_URL=https://anwar8900.github.io/mowadid/`
+> وإلا فإن رابط «فتح التطبيق» داخل رسائل تذكير المواعيد سيشير إلى `localhost`.
 
 ### ب) منصات أخرى
 

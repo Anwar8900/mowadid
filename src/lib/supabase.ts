@@ -13,8 +13,13 @@ export const isSupabaseConfigured =
   !url.includes('your-project-ref') &&
   !anonKey.includes('your-anon-key');
 
+/**
+ * عند عدم ضبط المفاتيح نستخدم عنوانًا غير صالح عمدًا (وليس عنوانًا محليًا حقيقيًا)
+ * حتى لا يرسل التطبيق أي طلب إلى جهاز المستخدم بالخطأ. الواجهة تعرض SetupNotice
+ * وتوقف العمليات حينها.
+ */
 export const supabase = createClient(
-  isSupabaseConfigured ? url : 'http://127.0.0.1:54321',
+  isSupabaseConfigured ? url : 'https://not-configured.invalid',
   isSupabaseConfigured ? anonKey : 'not-configured',
   {
     auth: {
