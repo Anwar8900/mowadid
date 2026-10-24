@@ -32,11 +32,17 @@ export function ResetPasswordPage() {
     setLoading(false);
 
     if (updateError) {
-      setError(
-        updateError.message.includes('Auth session missing')
-          ? 'انتهت صلاحية رابط الاستعادة أو لم تفتح الرابط من رسالة البريد. اطلب رابطًا جديدًا.'
-          : 'تعذر تغيير كلمة المرور. حاول مرة أخرى.',
-      );
+      const code = (updateError as { code?: string }).code ?? '';
+      const message = updateError.message.toLowerCase();
+      if (code === 'same_password' || message.includes('same password')) {
+        setError('كلمة المرور الجديدة يجب أن تكون مختلفة عن كلمة المرور الحالية.');
+      } else if (code === 'weak_password' || message.includes('weak')) {
+        setError('كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل مع مزيج من الحروف والأرقام.');
+      } else if (message.includes('session')) {
+        setError('انتهت صلاحية رابط الاستعادة أو لم تفتح الرابط من رسالة البريد. اطلب رابطًا جديدًا.');
+      } else {
+        setError('تعذر تغيير كلمة المرور. حاول مرة أخرى.');
+      }
       return;
     }
     setSuccess(true);
@@ -51,9 +57,9 @@ export function ResetPasswordPage() {
 
         {success ? (
           <>
-            <p className="form-success">تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.</p>
-            <button type="button" className="btn btn-primary btn-block" onClick={() => navigate('/login')}>
-              تسجيل الدخول
+            <p className="form-success">تم تغيير كلمة المرور بنجاح. يمكنك الآن استخدام التطبيق بكلمة المرور الجديدة.</p>
+            <button type="button" className="btn btn-primary btn-block" onClick={() => navigate('/')}>
+              المتابعة إلى التطبيق
             </button>
           </>
         ) : (
