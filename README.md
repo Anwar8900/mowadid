@@ -4,6 +4,11 @@
 كتطبيق (PWA) **من المتصفح** — أي عبر «إضافة إلى الشاشة الرئيسية» في Chrome / Edge / Safari.
 هذا **ليس** تطبيقًا منشورًا في متاجر التطبيقات (App Store / Google Play).
 
+**🔗 التطبيق المباشر:** <https://anwar8900.github.io/mowadid/>
+**📦 المستودع:** <https://github.com/Anwar8900/mowadid>
+
+**حساب تجريبي:** `mowadid.demo@gmail.com` / `Demo@12345` (بيانات وهمية، بلا معلومات شخصية حقيقية).
+
 ---
 
 ## 1) لماذا هذه التقنيات؟
@@ -331,18 +336,60 @@ supabase functions invoke send-reminders --no-verify-jwt \
 - **مهم:** هذا تثبيت من المتصفح (Web App / PWA)، وليس نشرًا في App Store أو Google Play،
   ولا يحتاج إلى متجر تطبيقات أو مراجعة من Apple أو Google.
 - يجب أن يكون الموقع يعمل عبر **HTTPS** (أو `localhost`) حتى يعمل Service Worker والتثبيت.
-  عند النشر على Netlify/Vercel/Cloudflare Pages يكون ذلك تلقائيًا.
+  الموقع المنشور على GitHub Pages يعمل عبر HTTPS تلقائيًا.
+- جرّب التثبيت من الرابط المباشر: <https://anwar8900.github.io/mowadid/>
 
 ---
 
 ## 8) النشر
 
-المشروع ملفات ثابتة بعد `npm run build` (المخرج في `dist/`). يمكن نشره على:
+المشروع ملفات ثابتة بعد `npm run build` (المخرج في `dist/`).
+
+### أ) GitHub Pages (منشور ومُختبَر)
+
+الموقع المباشر: **https://anwar8900.github.io/mowadid/**
+
+- النشر يتم عبر فرع `gh-pages` بأمر واحد:
+
+  ```bash
+  npm run deploy
+  ```
+
+  يبني المشروع بقاعدة المسارات `/mowadid/` تلقائيًا (مشتقة من اسم المستودع)، ثم يدفع
+  محتوى `dist/` إلى فرع `gh-pages`. لا يحتاج إلى صلاحية `workflow` في GitHub.
+- في **Settings → Pages** يكون المصدر: فرع `gh-pages` والمجلد `/ (root)`.
+- الملف `404.html` يُنشأ تلقائيًا كنسخة من `index.html` حتى تعمل الروابط المباشرة
+  (مثل `/mowadid/settings` أو `/mowadid/reset-password`) رغم أن GitHub Pages لا يدعم SPA.
+- الملف `.nojekyll` يُنشر تلقائيًا لتجنب معالجة Jekyll.
+- **بعد النشر يجب تحديث إعدادات روابط المصادقة في Supabase** وإلا فسيعود رابط استعادة
+  كلمة المرور إلى `localhost`:
+
+  > Dashboard → **Authentication → URL Configuration**
+  > - **Site URL**: `https://anwar8900.github.io/mowadid/`
+  > - **Redirect URLs**: أضف `https://anwar8900.github.io/mowadid/**`
+  >
+  > وباستخدام Management API:
+  >
+  > ```bash
+  > curl -X PATCH "https://api.supabase.com/v1/projects/<ref>/config/auth" \
+  >   -H "Authorization: Bearer <personal-access-token>" \
+  >   -H "Content-Type: application/json" -d '{
+  >     "site_url": "https://anwar8900.github.io/mowadid/",
+  >     "uri_allow_list": "http://localhost:5173,https://anwar8900.github.io/mowadid/**"
+  >   }'
+  > ```
+
+- لتغيير اسم المستودع: `PAGES_BASE=/my-repo/ npm run deploy` (على PowerShell:
+  `$env:PAGES_BASE="/my-repo/"; npm run deploy`).
+
+### ب) منصات أخرى
 
 - **Netlify / Vercel / Cloudflare Pages**: اربط المستودع، أمر البناء `npm run build`،
-  ومجلد النشر `dist`. أضف متغيرات البيئة `VITE_SUPABASE_URL` و`VITE_SUPABASE_ANON_KEY` في إعدادات الموقع.
-- **GitHub Pages**: أضف خطوة بناء في/workflows؛ انتبه أن المسارات الأساسية (base) تحتاج
-  `base: '/اسم-المستودع/'` في `vite.config.ts` و`base` في `vite.config`، وقاعدة البيانات تبقى كما هي.
+  ومجلد النشر `dist`، وأضف متغيرات البيئة `VITE_SUPABASE_URL` و`VITE_SUPABASE_ANON_KEY`.
+  لا تحتاج إلى `DEPLOY_BASE` (المسار يبقى `/`)، ولا إلى `404.html` لأن المنصات تدعم SPA
+  عبر قاعدة إعادة توجيه (Netlify: `/* /index.html 200`).
+- أي استضافة ثابتة أخرى: انسخ محتوى `dist/` واضبط إعادة التوجيه إلى `index.html`
+  وإلا فلن تعمل الروابط المباشرة.
 
 ---
 
